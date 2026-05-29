@@ -59,12 +59,6 @@ async function captureWebcamFrame(
 function imageFileToBlob(file: File): Blob {
   return file;
 }
-
-// Mode 2: Use an uploaded image file directly
-function imageFileToBlob(file: File): Blob {
-  return file;
-}
-
 // Mic recording (10 seconds)
 async function recordAudio(seconds = 10): Promise<Blob> {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
