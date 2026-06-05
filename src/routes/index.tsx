@@ -1,12 +1,15 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { Brain, ShieldCheck, Sparkles, Activity, Mail, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { BrandMark } from "@/components/brand-mark";
+import { apiLogin, apiSignup, saveToken } from "@/lib/api";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/")(
+  {
   head: () => ({
     meta: [
       { title: "MindMirror AI — Understand Your Mind Before It Speaks" },
@@ -15,20 +18,42 @@ export const Route = createFileRoute("/")({
         content:
           "Premium mental wellness AI that reads face, voice and text emotion in real time — emotional analytics, focus tracking and burnout prediction.",
       },
-      { property: "og:title", content: "MindMirror AI" },
-      {
-        property: "og:description",
-        content: "Mental wellness AI dashboard — emotional analytics, focus and burnout prediction.",
-      },
     ],
   }),
   component: LoginPage,
 });
 
 function LoginPage() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("mj@mindmirror.ai");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"login" | "signup">("login");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      if (mode === "login") {
+        const data = await apiLogin(email, password);
+        saveToken(data.access_token);
+        navigate({ to: "/app/scan" });
+      } else {
+        await apiSignup(email, password);
+        setMode("login");
+        setError("Account created! Please sign in.");
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="relative min-h-screen overflow-hidden">
-      {/* Decorative orbs */}
       <div className="pointer-events-none absolute -left-40 top-10 h-96 w-96 rounded-full bg-primary/30 blur-3xl" />
       <div className="pointer-events-none absolute right-0 top-60 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />
       <div className="pointer-events-none absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-secondary/25 blur-3xl" />
@@ -37,7 +62,6 @@ function LoginPage() {
         {/* Left */}
         <section className="flex-1">
           <BrandMark size={44} />
-
           <div className="mt-12 space-y-6">
             <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/40 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
               <Sparkles size={12} className="text-accent" />
@@ -54,7 +78,6 @@ function LoginPage() {
             </p>
           </div>
 
-          {/* AI brain illustration */}
           <div className="relative mt-10 hidden lg:block">
             <div className="relative h-72 w-full max-w-lg">
               <div className="absolute inset-0 rounded-[2rem] glass p-6">
@@ -68,12 +91,7 @@ function LoginPage() {
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-[10px]">
                       {["Joy", "Calm", "Focus"].map((l) => (
-                        <div
-                          key={l}
-                          className="rounded-lg bg-background/40 px-2 py-1 text-center"
-                        >
-                          {l}
-                        </div>
+                        <div key={l} className="rounded-lg bg-background/40 px-2 py-1 text-center">{l}</div>
                       ))}
                     </div>
                   </div>
@@ -109,19 +127,17 @@ function LoginPage() {
         <section className="w-full lg:w-[440px]">
           <div className="glass-strong rounded-3xl p-7 md:p-8">
             <div className="mb-7">
-              <h2 className="text-2xl font-semibold tracking-tight">Welcome back</h2>
+              <h2 className="text-2xl font-semibold tracking-tight">
+                {mode === "login" ? "Welcome back" : "Create account"}
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Sign in to continue your wellness journey.
+                {mode === "login"
+                  ? "Sign in to continue your wellness journey."
+                  : "Join MindMirror to start tracking your wellness."}
               </p>
             </div>
 
-            <form
-              className="space-y-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                window.location.href = "/app/scan";
-              }}
-            >
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-xs uppercase tracking-wider text-muted-foreground">
                   Email
@@ -132,60 +148,66 @@ function LoginPage() {
                     id="email"
                     type="email"
                     placeholder="you@mind.ai"
-                    defaultValue="mj@mindmirror.ai"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="h-12 rounded-xl bg-card/40 pl-10 border-border/60"
+                    required
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-xs uppercase tracking-wider text-muted-foreground">
-                    Password
-                  </Label>
-                  <button type="button" className="text-xs text-primary hover:text-accent transition">
-                    Forgot password?
-                  </button>
-                </div>
+                <Label htmlFor="password" className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Password
+                </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="password"
                     type="password"
-                    defaultValue="•••••••••"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="h-12 rounded-xl bg-card/40 pl-10 border-border/60"
+                    required
                   />
                 </div>
               </div>
 
+              {error && (
+                <p className={`text-xs px-1 ${error.includes("created") ? "text-[color:var(--color-success)]" : "text-destructive"}`}>
+                  {error}
+                </p>
+              )}
+
               <Button
                 type="submit"
-                className="h-12 w-full rounded-xl gradient-primary text-primary-foreground font-medium glow-primary hover:opacity-95"
+                disabled={loading}
+                className="h-12 w-full rounded-xl gradient-primary text-primary-foreground font-medium glow-primary hover:opacity-95 disabled:opacity-60"
               >
-                Sign in
+                {loading ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
               </Button>
 
               <div className="relative my-2">
                 <Separator className="bg-border/60" />
-                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background/0 px-3 text-[10px] uppercase tracking-wider text-muted-foreground">
-                  or
-                </span>
               </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                className="h-12 w-full rounded-xl border-border/70 bg-card/30 hover:bg-card/60"
-              >
-                <GoogleIcon />
-                Continue with Google
-              </Button>
-
-              <p className="pt-2 text-center text-sm text-muted-foreground">
-                New to MindMirror?{" "}
-                <Link to="/app/scan" className="text-primary hover:text-accent">
-                  Create an account
-                </Link>
+              <p className="text-center text-sm text-muted-foreground">
+                {mode === "login" ? (
+                  <>
+                    New to MindMirror?{" "}
+                    <button type="button" onClick={() => { setMode("signup"); setError(""); }} className="text-primary hover:text-accent">
+                      Create an account
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Already have an account?{" "}
+                    <button type="button" onClick={() => { setMode("login"); setError(""); }} className="text-primary hover:text-accent">
+                      Sign in
+                    </button>
+                  </>
+                )}
               </p>
             </form>
           </div>
