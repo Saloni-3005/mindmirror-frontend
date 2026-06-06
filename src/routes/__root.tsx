@@ -5,6 +5,7 @@ import {
   createRootRouteWithContext,
   useRouter,
 } from "@tanstack/react-router";
+import "../styles.css";
 
 function NotFoundComponent() {
   return (
