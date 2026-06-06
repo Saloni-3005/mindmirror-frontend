@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")(
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("mj@mindmirror.ai");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
