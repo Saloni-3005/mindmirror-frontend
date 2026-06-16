@@ -129,11 +129,11 @@ function ScanPage() {
         apiFaceEmotion(frameBlob),
         apiAttention(frameBlob),
         apiSentiment(userText),
-      ]);
-setLoading(true);
-setStatus("Capturing face...");
-// ... parallel calls ...
-setStatus("Recording voice (10s)...");
+       ]);
+// setLoading(true);
+// setStatus("Capturing face...");
+// // ... parallel calls ...
+// setStatus("Recording voice (10s)...");
       // ── Step 3: Record voice (sequential — needs mic) ──
       const audioBlob = await recordAudio(10);
       const voiceRes = await apiVoiceEmotion(audioBlob);
