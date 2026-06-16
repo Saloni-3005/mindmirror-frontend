@@ -315,7 +315,7 @@ function WebcamCard({
   onImageUpload,
   faceEmotion,
 }: {
-  videoRef: React.RefObject<HTMLVideoElement>;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
   scanMode: "camera" | "upload";
   setScanMode: (m: "camera" | "upload") => void;
   onImageUpload: (blob: Blob) => void;
