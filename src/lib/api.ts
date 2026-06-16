@@ -1,6 +1,6 @@
 // frontend/src/lib/api.ts
 
-const BASE = import.meta.env.VITE_API_URL ?? "https://mindmirror.vercel.app";
+const BASE = import.meta.env.VITE_API_URL ?? "https://mindmirror-backend-fue5.onrender.com";
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
 export function saveToken(token: string) {

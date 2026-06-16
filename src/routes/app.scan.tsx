@@ -85,7 +85,7 @@ function ScanPage() {
   const [scanMode, setScanMode] = useState<"camera" | "upload">("camera");
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-
+const [error, setError] = useState<string | null>(null);
   // Start webcam when camera mode is active
   useEffect(() => {
     if (scanMode !== "camera") return;
@@ -154,7 +154,8 @@ function ScanPage() {
         ...fuseRes,
       });
     } catch (err) {
-      console.error("Scan error:", err);
+  console.error("Scan error:", err);
+  setError(err instanceof Error ? err.message : "Scan failed");
     } finally {
       setLoading(false);
     }
@@ -292,6 +293,9 @@ function ScanPage() {
           <Sparkles size={18} className="mr-2" />
           {loading ? "Scanning… please wait" : "Start Full AI Analysis"}
         </Button>
+        {error && (
+          <p className="mt-2 text-xs text-red-400 text-center">{error}</p>
+        )}
 
         {results && (
           <Link
