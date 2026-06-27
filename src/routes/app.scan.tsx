@@ -83,6 +83,8 @@ function ScanPage() {
   const [userText, setUserText] = useState("");
   const [imageBlob, setImageBlob] = useState<Blob | null>(null);   // uploaded image
   const [scanMode, setScanMode] = useState<"camera" | "upload">("camera");
+  const [voiceMode, setVoiceMode] = useState<"record" | "upload">("record");
+const [audioFile, setAudioFile] = useState<Blob | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 const [error, setError] = useState<string | null>(null);
@@ -130,12 +132,19 @@ const [error, setError] = useState<string | null>(null);
         apiAttention(frameBlob),
         apiSentiment(userText),
        ]);
-// setLoading(true);
-// setStatus("Capturing face...");
-// // ... parallel calls ...
-// setStatus("Recording voice (10s)...");
-      // ── Step 3: Record voice (sequential — needs mic) ──
-      const audioBlob = await recordAudio(10);
+
+      // ── Step 3: Get audio (recorded live OR uploaded file) ──
+      let audioBlob: Blob;
+      if (voiceMode === "upload") {
+        if (!audioFile) {
+          alert("Please upload an audio file before scanning.");
+          setLoading(false);
+          return;
+        }
+        audioBlob = audioFile;
+      } else {
+        audioBlob = await recordAudio(10);
+      }
       const voiceRes = await apiVoiceEmotion(audioBlob);
 
       // ── Step 4: Fuse everything ──
@@ -234,7 +243,12 @@ const [error, setError] = useState<string | null>(null);
           onImageUpload={(blob) => setImageBlob(blob)}
           faceEmotion={results?.face_emotion}
         />
-        <VoiceCard voiceEmotion={results?.voice_emotion} />
+        <VoiceCard
+          voiceEmotion={results?.voice_emotion}
+          voiceMode={voiceMode}
+          setVoiceMode={setVoiceMode}
+          onAudioUpload={(blob) => setAudioFile(blob)}
+        />
         <TextCard
           text={userText}
           setText={setUserText}
@@ -439,7 +453,27 @@ function WebcamCard({
 
 // ─── VoiceCard ────────────────────────────────────────────────────────────────
 
-function VoiceCard({ voiceEmotion }: { voiceEmotion?: string }) {
+function VoiceCard({
+  voiceEmotion,
+  voiceMode,
+  setVoiceMode,
+  onAudioUpload,
+}: {
+  voiceEmotion?: string;
+  voiceMode: "record" | "upload";
+  setVoiceMode: (m: "record" | "upload") => void;
+  onAudioUpload: (blob: Blob) => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    onAudioUpload(file);
+  }
+
   return (
     <div className="glass rounded-3xl p-5">
       <div className="flex items-center justify-between">
@@ -450,7 +484,7 @@ function VoiceCard({ voiceEmotion }: { voiceEmotion?: string }) {
           <div>
             <h3 className="text-sm font-semibold">Voice Mood</h3>
             <p className="text-xs text-muted-foreground">
-              Recorded during scan…
+              {voiceMode === "record" ? "Recorded during scan…" : "Upload an audio file"}
             </p>
           </div>
         </div>
@@ -458,9 +492,56 @@ function VoiceCard({ voiceEmotion }: { voiceEmotion?: string }) {
           {voiceEmotion ?? "Waiting"}
         </span>
       </div>
-      <div className="mt-3">
-        <VoiceWaveform />
+
+      {/* Mode toggle */}
+      <div className="mt-3 flex gap-2">
+        <button
+          onClick={() => setVoiceMode("record")}
+          className={`rounded-xl px-3 py-1 text-xs transition-colors ${
+            voiceMode === "record"
+              ? "bg-primary text-primary-foreground"
+              : "bg-card/40 text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Record Live
+        </button>
+        <button
+          onClick={() => setVoiceMode("upload")}
+          className={`rounded-xl px-3 py-1 text-xs transition-colors ${
+            voiceMode === "upload"
+              ? "bg-primary text-primary-foreground"
+              : "bg-card/40 text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Upload Audio
+        </button>
       </div>
+
+      {voiceMode === "record" ? (
+        <div className="mt-3">
+          <VoiceWaveform />
+        </div>
+      ) : (
+        <div className="mt-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="audio/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/60 bg-card/20 py-6 hover:border-primary/50 hover:bg-card/40 transition-colors"
+          >
+            <Mic size={24} className="text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">
+              {fileName ?? "Click to upload an audio file (.wav, .mp3, .webm)"}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="mt-3 flex justify-between text-xs">
         <span className="text-muted-foreground">
           Tone:{" "}
